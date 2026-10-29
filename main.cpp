@@ -35,102 +35,80 @@ void dealerReceivesCards(std::vector<std::string> &vec3, std::vector<std::string
 }
 
 // determines the numerical value of the hand with Ace being counted as 1 point
-int evaluateHandAceLow(std::vector<std::string> &vec1)
+int evaluateHand(std::vector<std::string> &vec1)
 {
-    int playerScore1 {};                                          
+    int score {};
+    int numAces {0};                                      
 
     for (std::size_t i {0}; i < vec1.size(); i++)
     {
         if (vec1.at(i) == "A")
         {
-            playerScore1 += 1;
+            numAces += 1;
         }
         else if (vec1.at(i) == "2")
         {
-            playerScore1 += 2;
+            score += 2;
         }
         else if (vec1.at(i) == "3")
         {
-            playerScore1 += 3;
+            score += 3;
         }
         else if (vec1.at(i) == "4")
         {
-            playerScore1 += 4;
+            score += 4;
         }
         else if (vec1.at(i) == "5")
         {
-            playerScore1 += 5;
+            score += 5;
         }
         else if (vec1.at(i) == "6")
         {
-            playerScore1 += 6;
+            score += 6;
         }
         else if (vec1.at(i) == "7")
         {
-            playerScore1 += 7;
+            score += 7;
         }
         else if (vec1.at(i) == "8")
         {
-            playerScore1 += 8;
+            score += 8;
         }
         else if (vec1.at(i) == "9")
         {
-            playerScore1 += 9;
+            score += 9;
         }
         else {
-            playerScore1 += 10;
+            score += 10;
         } 
     }
-    return playerScore1;
-}
-
-int evaluateHandAceHigh(std::vector<std::string> &vec1)
-{
-    int playerScore2 {};                                           
-
-    for (std::size_t i {0}; i < vec1.size(); i++)
+    
+    switch (numAces)
     {
-        if (vec1.at(i) == "A")
+    case 0:
+        break;
+    
+    case 1:
+        if (score <= 10)
         {
-            playerScore2 += 11;
+            score += 11;
         }
-        else if (vec1.at(i) == "2")
+        else
         {
-            playerScore2 += 2;
+            score += 1;
         }
-        else if (vec1.at(i) == "3")
+        break;
+    default:
+        score += 11 + numAces - 1;
+        // if counting one Ace as 11 causes hand to bust, go back and count it as 1 instead
+        if (score > 21)
         {
-            playerScore2 += 3;
+            score -= 10;
         }
-        else if (vec1.at(i) == "4")
-        {
-            playerScore2 += 4;
-        }
-        else if (vec1.at(i) == "5")
-        {
-            playerScore2 += 5;
-        }
-        else if (vec1.at(i) == "6")
-        {
-            playerScore2 += 6;
-        }
-        else if (vec1.at(i) == "7")
-        {
-            playerScore2 += 7;
-        }
-        else if (vec1.at(i) == "8")
-        {
-            playerScore2 += 8;
-        }
-        else if (vec1.at(i) == "9")
-        {
-            playerScore2 += 9;
-        }
-        else {
-            playerScore2 += 10;
-        } 
+        break;
     }
-    return playerScore2;
+   
+    return score;
 }
 
 // return true if hit is chosen
@@ -168,6 +146,9 @@ int main()
 
     while (balance > 0.00)                                          // only let the game continue while the player has some amount of money
     {
+        playerHand.clear();
+        dealerHand.clear();
+
         int amountBet {requestBet()};                               // run requestBet and set that equal to amountBet so that we can reference the bet amount multiple times
         balance -= amountBet;                                       // subtract the amountBet from the running balance
         std::cout << "\nYour balance is now: " << balance << '\n';
@@ -192,14 +173,14 @@ int main()
                 {
                     dealCard(playerHand, startingDeck);
                 }
-                while ((evaluateHandAceLow(playerHand) < 21 || evaluateHandAceHigh(playerHand) < 21) && userChoosesHit());
+                while ((evaluateHand(playerHand) < 21) && userChoosesHit());
                 break;   
 
             case 2:                                                 // stand
                 break;
 
             case 3:                                                 // double down
-                balance -= 2.0 * requestBet();    
+                balance -= 2.0 * amountBet;    
                 std::cout << "\nYour balance is now: " << balance << '\n';
                 dealCard(playerHand, startingDeck);
                 break;
@@ -210,8 +191,10 @@ int main()
                 break;
         }
 
+        int scorePlayer {evaluateHand(playerHand)};
+
         // now that the player has finished making their choice, determine if they busted
-        if (evaluateHandAceLow(playerHand) > 21 && evaluateHandAceHigh(playerHand) > 21)                          // if the player busts
+        if (scorePlayer > 21)                          // if the player busts
         {
             std::cout << "\nSorry, you busted.\n";
             continue;                                               // start the next round
@@ -220,40 +203,40 @@ int main()
         // now it's the dealers turn
         std::cout << "\nThe dealer has flipped their first card face up: " << dealerHand.front() << '\n';
 
-        if (evaluateHandAceLow(dealerHand) < 17 && evaluateHandAceHigh(dealerHand) < 17)                          // if the dealer's hand is less than 17
+        if (evaluateHand(dealerHand) < 17)                          // if the dealer's hand is less than 17
         {
             do
             {
                 dealerReceivesCards(dealerHand, startingDeck);      // give the dealer another card
                 std::cout << "\nThe dealer has received another card: " << dealerHand.back() << '\n';
             }
-            while (evaluateHandAceLow(dealerHand) < 17 || evaluateHandAceHigh(dealerHand) < 17);
+            while (evaluateHand(dealerHand) < 17);
         }
+
+        int scoreDealer {evaluateHand(dealerHand)};
         
-        if (evaluateHandAceLow(dealerHand) > 21 && evaluateHandAceHigh(dealerHand) > 21)                          // if the dealer busts
+        if (scoreDealer > 21)                          // if the dealer busts
         {
             std::cout << "\nCongratulations, the dealer has busted.\n";
             balance += 2 * amountBet;
             std::cout << "\nYour balance is now: " << balance << '\n';
         }
         // if it is a tie
-        else if (evaluateHandAceLow(playerHand) == evaluateHandAceLow(dealerHand)
-                || evaluateHandAceLow(playerHand) == evaluateHandAceHigh(dealerHand) 
-                || evaluateHandAceHigh(playerHand) == evaluateHandAceLow(dealerHand) 
-                || evaluateHandAceHigh(playerHand) == evaluateHandAceHigh(dealerHand))
+        if (scorePlayer == scoreDealer)
         {
             std::cout << "\nYou tied with the dealer.\n";
             balance += amountBet;
             std::cout << "\nYour balance is now: " << balance << '\n';
         }
-        else if (evaluateHandAceLow(playerHand) > evaluateHandAceLow(dealerHand)
-                || evaluateHandAceLow(playerHand) > evaluateHandAceHigh(dealerHand) 
-                || evaluateHandAceHigh(playerHand) > evaluateHandAceLow(dealerHand) 
-                || evaluateHandAceHigh(playerHand) > evaluateHandAceHigh(dealerHand)) // if the player wins
+        else if (scorePlayer > scoreDealer) // if the player wins
         {
             std::cout << "\nCongratulations, you beat the dealer.\n";
             balance += 2 * amountBet;
             std::cout << "\nYour balance is now: " << balance << '\n';
+        }
+        else if (scorePlayer < scoreDealer)   // if the player loses
+        {
+            std::cout << "\nSorry, you lost the round\n";
         }
     }
 
