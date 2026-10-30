@@ -126,9 +126,69 @@ bool userChoosesHit()
     }
 }
 
+bool playerBusted(int playerScore)
+{
+    if (playerScore > 21)
+    {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+bool dealerBusted(int dealerScore)
+{
+    if (dealerScore > 21)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool playerWon (int playerScore, int dealerScore)
+{
+    if (playerScore > dealerScore)
+    {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+bool playerTied (int playerScore, int dealerScore)
+{
+    if (playerScore == dealerScore)
+    {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+bool blackjack (int playerScore, std::vector<std::string> &vec1)
+{
+    if (playerScore == 21 && vec1.size() == 2)
+    {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
 int main()
 {
-    double balance {500.00};                                        // initial balance of money in USD
+    double balance {500.00};                                       // initial balance of money in USD
+    double amountWon {};
+
+    int scorePlayer {};
+    int scoreDealer {};
 
     std::vector<std::string> startingDeck {"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K",
         "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K",
@@ -149,8 +209,11 @@ int main()
         playerHand.clear();
         dealerHand.clear();
 
+        std::cout << "\nYour balance is: " << balance << '\n';
+
         int amountBet {requestBet()};                               // run requestBet and set that equal to amountBet so that we can reference the bet amount multiple times
         balance -= amountBet;                                       // subtract the amountBet from the running balance
+
         std::cout << "\nYour balance is now: " << balance << '\n';
         std::cout << "\nLet's begin with the game.\n";
 
@@ -172,17 +235,20 @@ int main()
                 do
                 {
                     dealCard(playerHand, startingDeck);
+                    scorePlayer = evaluateHand(playerHand);
                 }
-                while ((evaluateHand(playerHand) < 21) && userChoosesHit());
+                while (scorePlayer < 21 && userChoosesHit());
                 break;   
 
             case 2:                                                 // stand
+                scorePlayer = evaluateHand(playerHand);
                 break;
 
             case 3:                                                 // double down
-                balance -= 2.0 * amountBet;    
+                balance -= amountBet;    
                 std::cout << "\nYour balance is now: " << balance << '\n';
                 dealCard(playerHand, startingDeck);
+                scorePlayer = evaluateHand(playerHand);
                 break;
 
             default:                                                 // anything besides valid choice
@@ -191,52 +257,72 @@ int main()
                 break;
         }
 
-        int scorePlayer {evaluateHand(playerHand)};
-
-        // now that the player has finished making their choice, determine if they busted
-        if (scorePlayer > 21)                          // if the player busts
-        {
-            std::cout << "\nSorry, you busted.\n";
-            continue;                                               // start the next round
-        }
-
         // now it's the dealers turn
         std::cout << "\nThe dealer has flipped their first card face up: " << dealerHand.front() << '\n';
 
-        if (evaluateHand(dealerHand) < 17)                          // if the dealer's hand is less than 17
+        scoreDealer = evaluateHand(dealerHand);
+
+        if (scoreDealer < 17)                          // if the dealer's hand is less than 17
         {
             do
             {
                 dealerReceivesCards(dealerHand, startingDeck);      // give the dealer another card
                 std::cout << "\nThe dealer has received another card: " << dealerHand.back() << '\n';
+                scoreDealer = evaluateHand(dealerHand);
             }
-            while (evaluateHand(dealerHand) < 17);
+            while (scoreDealer < 17);
+        }
+        
+        if (playerBusted(scorePlayer))
+        {
+            std::cout << "\nSorry, you busted.\n";
+            std::cout << "\nThe casino took your bet of " << amountBet << '\n';
+            continue;
         }
 
-        int scoreDealer {evaluateHand(dealerHand)};
-        
-        if (scoreDealer > 21)                          // if the dealer busts
+        if (dealerBusted(scoreDealer))
         {
-            std::cout << "\nCongratulations, the dealer has busted.\n";
-            balance += 2 * amountBet;
-            std::cout << "\nYour balance is now: " << balance << '\n';
+            if (blackjack(scorePlayer, playerHand))
+            {
+                std::cout << "\nCongratulations! The dealer busted and you got Blackjack!\n";
+                amountWon = 2.5 * amountBet;
+                std::cout << "\nYou won: " << amountWon << '\n';
+                balance += amountWon;
+            }
+            else {
+                std::cout << "\nCongratulations, the dealer busted!\n";
+                amountWon = 2.0 * amountBet;
+                std::cout << "\nYou won: " << amountWon << '\n';
+                balance += amountWon;
+            }
+            continue;
         }
-        // if it is a tie
-        if (scorePlayer == scoreDealer)
+
+        if (playerWon(scorePlayer, scoreDealer))
+        {
+            if (blackjack(scorePlayer, playerHand))
+            {
+                std::cout << "\nCongratulations! You got Blackjack and beat the dealer!\n";
+                amountWon = 2.5 * amountBet;
+                std::cout << "\nYou won: " << amountWon << '\n';
+                balance += amountWon;
+            }
+            else {
+                std::cout << "\nCongratulations, you beat the dealer!\n";
+                amountWon = 2.0 * amountBet;
+                std::cout << "\nYou won: " << amountWon << '\n';
+                balance += amountWon;
+            }
+        }
+        else if (playerTied(scorePlayer, scoreDealer))
         {
             std::cout << "\nYou tied with the dealer.\n";
+            std::cout << "\nYou received your bet.\n";
             balance += amountBet;
-            std::cout << "\nYour balance is now: " << balance << '\n';
         }
-        else if (scorePlayer > scoreDealer) // if the player wins
-        {
-            std::cout << "\nCongratulations, you beat the dealer.\n";
-            balance += 2 * amountBet;
-            std::cout << "\nYour balance is now: " << balance << '\n';
-        }
-        else if (scorePlayer < scoreDealer)   // if the player loses
-        {
-            std::cout << "\nSorry, you lost the round\n";
+        else {
+            std::cout << "\nSorry, you lost.\n";
+            std::cout << "\nThe casino took your bet of " << amountBet << '\n';
         }
     }
 
